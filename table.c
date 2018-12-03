@@ -6,6 +6,7 @@
 
 struct table_ {
 	char* path;
+	/*FILE* f;*/
 	int ncols;
 	type_t* types;
 	long first_pos;
@@ -16,19 +17,22 @@ struct table_ {
 /* 
    Creates a file that stores an empty table. This function doesn't
    keep any information in memory: it simply creates the file, stores
-   the header information, and closes it.
+   the header information, and closes it. Completed, test pending
 */
 void table_create(char* path, int ncols, type_t* types) {
-  /* To be implemented */
-  FILE * f = NULL;
-  char cadena [] = "asd\n";
-    
-  f = fopen(path, "wb");
+	FILE * f = NULL;
+
+	if(!path || ncols<1 || !types)	return;
+
+	f = fopen(path, "wb");
 	if(!f) return;
-/* stores  the header information */
-  fwrite(cadena, sizeof(char), sizeof(cadena), f); 
-  fclose(f);
-  return;
+	
+	/* stores  the header information */
+	fwrite(&ncols, sizeof(int), 1, f);
+	fwrite(types, sizeof(type_t), ncols, f);
+  
+	fclose(f);
+	return;
 }
 
 /* 
@@ -37,6 +41,36 @@ void table_create(char* path, int ncols, type_t* types) {
    NULL is the file doesn't exist or if there is any error.
 */
 table_t* table_open(char* path) {
+  table_t* table = NULL;
+	FILE* f = NULL;
+
+  if(!path) return NULL;
+  
+  table = (table_t *) malloc(sizeof(table_t));
+  if(!table) return NULL;
+  
+	f = fopen(path, "rb");
+  if(!f){
+		free(table);
+		return NULL;
+  }
+  
+	fread(&table->ncols, sizeof(int), 1, f);
+	table->types = (type_t*) malloc(table->ncols * sizeof(type_t));
+	if(table->types==NULL){
+		free(table);
+		return NULL;
+	}
+
+	fread(table->types, sizeof(type_t), table->ncols, f);
+	table->first_pos = ftell(f);
+	fseek(table->file, 0, SEEK_END);
+	table->last_pos = ftell(f);
+	
+	fclose(f);
+	return table;
+} 
+ 
   /* To be implemented
   table_ tabla;
   
