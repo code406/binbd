@@ -34,3 +34,14 @@ void print_value(FILE* f, type_t type, void* value) {
 						break;
     }
 }
+
+int value_cmp(type_t type, void* value1, void* value2) {
+    switch(type) {
+        case INT:
+            return *((int*) value1) - *((int*) value2); 
+        case STR:
+            return strcmp((char*) value1, (char*) value2);
+        default:
+            return 0;
+    }
+}

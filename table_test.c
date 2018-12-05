@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "table.h"
-#include "type.h"
 
 #define NCOLS 4
 
