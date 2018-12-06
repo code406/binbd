@@ -11,7 +11,7 @@ struct table_ {
   long first_pos;
   long cur_pos;  /*to insert*/
   long last_pos; /*to read*/
-  void **buff;
+  void **field; /*array of pointers to fields of a record*/
 };
 
 /*
@@ -25,13 +25,16 @@ void table_create(char *path, int ncols, type_t *types) {
   if (!path || ncols < 1 || !types)
     return;
 
-  f = fopen(path, "w");
+	/* Uses 'a' to add, and not overwrite */
+  f = fopen(path, "a");
   if (!f)
     return;
 
-  /* stores  the header information */
-  fwrite(&ncols, sizeof(int), 1, f);
-  fwrite(types, sizeof(type_t), ncols, f);
+	/* If new file, stores header information. If existent, not needed */
+	if(ftell(f) == 0){
+  	fwrite(&ncols, sizeof(int), 1, f);
+  	fwrite(types, sizeof(type_t), ncols, f);
+	}
 
   fclose(f);
   return;
@@ -48,7 +51,7 @@ table_t *table_open(char *path) {
   if (!path)
     return NULL;
 
-  table = (table_t *)malloc(sizeof(table_t));
+  table = (table_t *)calloc(1, sizeof(table_t));
   if (!table)
     return NULL;
 
@@ -61,10 +64,17 @@ table_t *table_open(char *path) {
   fseek(table->file, 0, SEEK_SET);
   fread(&table->ncols, sizeof(int), 1, table->file);
 
-  table->types = (type_t *)malloc(table->ncols * sizeof(type_t));
+	/* Allocs types for each column in the table */
+  table->types = (type_t *)calloc(table->ncols, sizeof(type_t));
   if (!table->types) {
-    free(table);
-    fclose(table->file);
+    table_close(table);
+    return NULL;
+  }
+
+	/* Allocs pointers for the fields in the record */
+	table->field = (void **)calloc(table->ncols, sizeof(void *));
+	if (!table->field){
+    table_close(table);
     return NULL;
   }
 
@@ -84,9 +94,9 @@ table_t *table_open(char *path) {
 */
 void table_close(table_t *table) {
   if (table) {
-    fclose(table->file);
-    free(table->types);
-		/* free table buff? */
+    if(table->file) fclose(table->file);
+    if(table->types) free(table->types);
+		if(table->field) free(table->field);
     free(table);
   }
 }
@@ -156,33 +166,27 @@ long table_read_record(table_t *table, long pos) {
   if (!table)
     return -1L;
 
-  /* If this happens, we get out of "recursion" */
+  /* If this happens, we get out */
   if (table->last_pos <= pos)
     return -1L;
 
   /* Place cursor in given pos */
   fseek(table->file, pos, SEEK_SET);
 
-  /* Allocs for the whole record */
-  table->buff = (void **)malloc(table->ncols * sizeof(void *));
-  if (!table->buff)
-    return -1L;
-
   for (i = 0; i < table->ncols; i++) {
     /* Gets size */
     fread(&size, sizeof(size_t), 1, table->file);
 
-    /* Allocs for column size. Default: malloc returns (void*), uses (void)
-     * mult. size */
-    table->buff[i] = malloc(size);
-    if (!table->buff[i]) {
+    /* Allocs for column size. Default: calloc returns (void*) */
+    table->field[i] = calloc(1, size);
+    if (!table->field[i]) {
       for (; i >= 0; i--)
-        free(table->buff[i]);
-      free(table->buff);
+        free(table->field[i]);
+      free(table->field);
       return -1L;
     }
 
-    fread(table->buff[i], size, 1, table->file);
+    fread(table->field[i], size, 1, table->file);
   }
 
   table->cur_pos = ftell(table->file);
@@ -200,8 +204,8 @@ void *table_column_get(table_t *table, int col) {
   if (!table || col >= table->ncols || col < 0)
     return NULL;
 
-  if (table->buff)
-    return table->buff[col];
+  if (table->field)
+    return table->field[col];
   else
     return NULL;
 }

@@ -11,11 +11,11 @@ int main(int argc, char const *argv[]) {
   SQLHDBC dbc;
   SQLHSTMT stmt;
   SQLRETURN ret; /* ODBC API return status */
-  SQLBIGINT id = 0x01020304; /*Para probar al leer el hex*/
+  SQLBIGINT id;
   char query[512];
   table_t *table = NULL;
   void **rec = NULL;
-	int score = 0;
+	int score;
   /* For this specific case */
   type_t types[] = {LLNG, STR, INT, STR};
 
@@ -56,19 +56,19 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  rec = (void **)malloc(table_ncols(table) * sizeof(void *));
+  rec = (void **)calloc(table_ncols(table), sizeof(void *));
   if (!rec) {
     table_close(table);
     fprintf(stderr, "Error in record memory alloc");
     exit(EXIT_FAILURE);
   }
 
-	/* Guardamos en registro. Con malloc en los que son cadenas */
+	/* Guardamos en registro. Con calloc en los que son cadenas */
   rec[0] = &id;
-	rec[1] = malloc((strlen(argv[1])+1) * sizeof(char));
+	rec[1] = calloc(1, (strlen(argv[1])+1) * sizeof(char));
   strcpy(rec[1], argv[1]);
 	rec[2] = &score;
-	rec[3] = malloc((strlen(argv[3])+1) * sizeof(char));
+	rec[3] = calloc(1, (strlen(argv[3])+1) * sizeof(char));
 	strcpy(rec[3], argv[3]);
   table_insert_record(table, rec);
 
