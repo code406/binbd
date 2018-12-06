@@ -4,6 +4,11 @@
 #include "index.h"
 
 struct index_ {
+  FILE *file;
+  char *string1;
+  char *string2;
+  int key;
+  int position;
     /* to be implemented */
 };
 
@@ -29,8 +34,23 @@ int mycmp(const void *kptr, const void *e) {
    and to contain 0 entries.
  */
 int index_create(int type) {
+  FILE * f_create= NULL;
+  index_t *index=NULL;
+
+  f_create=fopen("name.txt","wb o r+");
+  if (!f)
+    return 1;
+
+  fread(index->, sizeof(type_t),index->, index->);/*leemos la cabecera*/
+  fwrite(type,sizeof(int),1,f_create);/*no hace falta escribir en create*/
+
+  /*cerramos el fichero en index_close fclose(f);*/
+
   return 0;
+  /*The index is initialized to be of the specific tpe (in the basic version this is always INT) and to contain 0 entries.*/
+
 }
+
 
 /* 
    Opens a previously created index: reads the contents of the index
@@ -45,6 +65,28 @@ int index_create(int type) {
    again).
  */
 index_t* index_open(char* path) {
+  index_t *index=NULL;
+  FILE *f_open;
+
+  if(!path)
+    return NULL;
+  
+  f_open=fopen("name.txt","wb o r+");
+  if(!f)
+    return NULL;
+
+
+  index= (index_t *)malloc(sizeof (index_t));
+  if(!index)
+    return NULL;
+
+  /*Reads the contenets of the index in an index_t structure that it allocates*/
+  fread(index->string1, sizeof(index_t), index->);
+  fread(index->string2, sizeof(index_t), index->);
+  /*return a pointer to it or NULL*/
+
+  fclose(f_open);/* en la funcion index_close*/
+
   return NULL;
 }
 
@@ -53,18 +95,50 @@ index_t* index_open(char* path) {
    NOTE to index_open.
 */
 int index_save(index_t* index, char* path) {
+  index_t *index=NULL;
+  FILE *f_save;
+  int i;
+
+  if(!index || !path)
+    return 1;
+
+  f_save=fopen(path ,"wb o r+");
+  if(!f)
+    return 1;
+
+  for(i=0;i<index->;i++){
+    /*fwrite(index->string1,sizeof(index_t),index->);
+    fwrite(index->string2,sizeof(index_t),index->);*/
+    fwrite(index->key,sizeof(int),1,f_save);
+    fwrite(index->position,sizeof(int),1,f_save);
+  }
+
+  
+
+  fclose(f_save);/*crep que mejor en index_close*/
+
   return 0;
 }
 
 
 /* 
-   Puts a pair key-position in the index. Note that the key may be
+   Puts a pair key-position in the index. NOTE: that the key may be
    present in the index or not... you must manage both situation. Also
    remember that the index must be kept ordered at all times.
 */
 int index_put(index_t *index, int key, long pos) {
+  if(!index || index->key<=key || index->position<=pos)
+    return 0;
+
+  strcpy(index->key,key);
+  strcpy(index->position,pos);
+
+  index->key=key;
+  index->position=pos;
+
   return 0;
 }
+
 
 /* 
    Retrieves all the positions associated with the key in the index. 
@@ -87,6 +161,30 @@ int index_put(index_t *index, int key, long pos) {
 
 */
 long **index_get(index_t *index, int key, int* nposs) {
+
+  if(!index || index->key<=key)
+    return NULL;
+  int n,found;
+  long **poss = index_get(index, key, &n);
+
+
+  for (i=0; i < &(nposs); i++) {
+    /*
+    Do something with poss[i]
+    if()
+      index->key = poss[i];
+    */
+    if(index->key == key){
+      found = 1;
+      break;
+    }
+
+  }
+
+  if(found==1){
+
+  }
+
   return NULL;
 }
 
@@ -94,6 +192,13 @@ long **index_get(index_t *index, int key, int* nposs) {
    Closes the index by freeing the allocated resources 
 */
 void index_close(index_t *index) {
+  if(!index)
+    return;
+
+  fclose(f_open);
+  fclose(f_create);
+  fclose(f_save);
+  free(index);
 }
 
 

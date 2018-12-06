@@ -86,6 +86,7 @@ void table_close(table_t *table) {
   if (table) {
     fclose(table->file);
     free(table->types);
+		/* free table buff? */
     free(table);
   }
 }
@@ -213,12 +214,12 @@ void *table_column_get(table_t *table, int col) {
 */
 void table_insert_record(table_t *table, void **values) {
   int i;
-  size_t len = 0;
+  size_t len;
 
   if (!table || !values)
     return;
 
-  /* Place cursor in the first position we can insert */
+  /* Place cursor in the last position we can insert */
   fseek(table->file, table->last_pos, SEEK_SET);
 
   /* Writes in bin file */

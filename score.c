@@ -1,20 +1,21 @@
-#include "odbc.h"
-#include "table.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <sql.h>
 #include <sqlext.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "odbc.h"
+#include "table.h"
 
 int main(int argc, char const *argv[]) {
   SQLHENV env;
   SQLHDBC dbc;
   SQLHSTMT stmt;
   SQLRETURN ret; /* ODBC API return status */
-  SQLBIGINT id;
+  SQLBIGINT id = 0x01020304; /*Para probar al leer el hex*/
   char query[512];
   table_t *table = NULL;
   void **rec = NULL;
+	int score = 0;
   /* For this specific case */
   type_t types[] = {LLNG, STR, INT, STR};
 
@@ -30,7 +31,8 @@ int main(int argc, char const *argv[]) {
   }
 
   /* Score not between 0 and 100 */
-  if (atoi(argv[2]) < 0 || atoi(argv[2]) > 100) {
+	score = atoi(argv[2]);
+  if (score < 0 || score > 100) {
     printf("Introduce una puntuacion entre 0 y 100");
     return 1;
   }
@@ -61,15 +63,20 @@ int main(int argc, char const *argv[]) {
     exit(EXIT_FAILURE);
   }
 
+	/* Guardamos en registro. Con malloc en los que son cadenas */
   rec[0] = &id;
-  rec[1] = argv[1];
-  rec[2] = argv[2];
-  rec[3] = argv[3];
+	rec[1] = malloc((strlen(argv[1])+1) * sizeof(char));
+  strcpy(rec[1], argv[1]);
+	rec[2] = &score;
+	rec[3] = malloc((strlen(argv[3])+1) * sizeof(char));
+	strcpy(rec[3], argv[3]);
   table_insert_record(table, rec);
 
   /*Free memory*/
   table_close(table);
-  free(rec);
+	free(rec[1]);
+	free(rec[3]);
+	free(rec);
 
   return 0;
 }
