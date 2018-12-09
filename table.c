@@ -1,8 +1,8 @@
-#include "table.h"
-#include "type.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "table.h"
+#include "type.h"
 
 struct table_ {
   FILE *file;

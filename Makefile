@@ -1,20 +1,23 @@
 CC = gcc -ansi -pedantic
 CFLAGS = -Wall -std=c99 -Wextra
 LDLIBS = -lodbc
-EXE = test test_table table_test score suggest
+EXE = test test_table table_test score suggest score_i
 
 all : $(EXE)
 
 clean :
 	rm -f *.o *.txt *.dat core $(EXE)
 
-$(EXE) : % : %.o type.o table.o odbc.o
-	$(CC) $(CFLAGS) -o $@ $@.o type.o table.o odbc.o $(LDLIBS)
+$(EXE) : % : %.o type.o table.o index.o odbc.o
+	$(CC) $(CFLAGS) -o $@ $@.o type.o table.o index.o odbc.o $(LDLIBS)
 
 type.o : type.c type.h
 	$(CC) $(CFLAGS) -c $<
 
 table.o : table.c table.h
+	$(CC) $(CFLAGS) -c $<
+
+index.o : index.c index.h
 	$(CC) $(CFLAGS) -c $<
 
 odbc.o : odbc.c odbc.h

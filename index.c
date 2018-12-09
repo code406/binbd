@@ -3,59 +3,82 @@
 #include <string.h>
 #include "index.h"
 
-struct index_ {
-  FILE *file;
-  char *string1;
-  char *string2;
-  int key;
-  int position;
-    /* to be implemented */
-};
-
 typedef struct {
+  int key;
+  long *position; /*Position of each record with the same key  */
+  int reps;       /*Number of records with the same key (score)*/
 } irecord;
 
+struct index_ {
+  FILE *file;      /*El file es la columna de indice disco, la de en medio*/
+  irecord *record; /*Array of records*/
+  int nrecords;
+  int type;
+};
+
+/*
 int mycmp(const void *kptr, const void *e) {
-  /*
-  irecord *rec = *((irecord **) e);
+  irecord *rec = *((irecord **)e);
   if (key < rec->key)
     return -1;
   else if (key > rec->key)
     return 1;
-  else 
+  else
     return 0;
-  */
+}
+*/
+
+/* Returns 1 if it finds same key, 0 if not, -1 if error */
+int bbin(int *m, index_t *index, int key){
+	int last, first=0;
+
+  if(!m || !index)
+    return -1;
+
+	last = index->nrecords;
+	while (first <= last){
+		*m = (first + last) / 2;
+		if((index->record[*m]).key == key){
+			return 1;
+		}
+		else if (key < (index->record[*m]).key)
+			last = *m + 1;
+		else
+			first = *m - 1;
+	}
+	return 0;
 }
 
 
-/* 
+/*
    Creates a file for saving an empty index. The index is initialized
    to be of the specific tpe (in the basic version this is always INT)
    and to contain 0 entries.
  */
 int index_create(int type) {
-  FILE * f_create= NULL;
-  index_t *index=NULL;
+  FILE *f = NULL;
+	int cero = 0;
 
-  f_create=fopen("name.txt","wb o r+");
+  f = fopen("index.dat", "a");
   if (!f)
     return 1;
 
-  fread(index->, sizeof(type_t),index->, index->);/*leemos la cabecera*/
-  fwrite(type,sizeof(int),1,f_create);/*no hace falta escribir en create*/
+  /* If new file, stores header information. If existent, not needed */
+  if (ftell(f) == 0) {
+    /* number of entries (0 as required) */
+    fwrite(&cero, sizeof(int), 1, f);
+    /* type of entries (int in this basic version, given value 0) */
+    fwrite(&type, sizeof(int), 1, f);
+  }
 
-  /*cerramos el fichero en index_close fclose(f);*/
-
+  fclose(f);
   return 0;
-  /*The index is initialized to be of the specific tpe (in the basic version this is always INT) and to contain 0 entries.*/
-
 }
 
-
-/* 
+/*
    Opens a previously created index: reads the contents of the index
    in an index_t structure that it allocates, and returns a pointer to
-   it (or NULL if the files doesn't exist or there is an error). 
+   it (or NULL if the files doesn't exist or there is an error).
 
    NOTE: the index is stored in memory, so you can open and close the
    file in this function. However, when you are asked to save the
@@ -64,85 +87,122 @@ int index_create(int type) {
    the file open) or the path (and in this case you will open the file
    again).
  */
-index_t* index_open(char* path) {
-  index_t *index=NULL;
-  FILE *f_open;
+index_t *index_open(char *path) {
+  index_t *index = NULL;
+  int i, j;
 
-  if(!path)
-    return NULL;
-  
-  f_open=fopen("name.txt","wb o r+");
-  if(!f)
+  if (!path)
     return NULL;
 
-
-  index= (index_t *)malloc(sizeof (index_t));
-  if(!index)
+  index = (index_t *)calloc(1, sizeof(index_t));
+  if (!index)
     return NULL;
 
-  /*Reads the contenets of the index in an index_t structure that it allocates*/
-  fread(index->string1, sizeof(index_t), index->);
-  fread(index->string2, sizeof(index_t), index->);
-  /*return a pointer to it or NULL*/
-
-  fclose(f_open);/* en la funcion index_close*/
-
-  return NULL;
-}
-
-/* 
-   Saves the current state of index in the file it came from. See the
-   NOTE to index_open.
-*/
-int index_save(index_t* index, char* path) {
-  index_t *index=NULL;
-  FILE *f_save;
-  int i;
-
-  if(!index || !path)
-    return 1;
-
-  f_save=fopen(path ,"wb o r+");
-  if(!f)
-    return 1;
-
-  for(i=0;i<index->;i++){
-    /*fwrite(index->string1,sizeof(index_t),index->);
-    fwrite(index->string2,sizeof(index_t),index->);*/
-    fwrite(index->key,sizeof(int),1,f_save);
-    fwrite(index->position,sizeof(int),1,f_save);
+  index->file = fopen(path, "r+");
+  if (!index->file) {
+    free(index);
+    return NULL;
   }
 
-  
+  /* Reads header */
+  fread(&index->nrecords, sizeof(int), 1, index->file);
+  fread(&index->type, sizeof(int), 1, index->file);
 
-  fclose(f_save);/*crep que mejor en index_close*/
+  /* Allocs pointers for the records in the index */
+  index->record = (irecord *)calloc(index->nrecords, sizeof(irecord));
+  if (!index->record) {
+    index_close(index);
+    return NULL;
+  }
+
+  for (i = 0; i < index->nrecords; i++) {
+    /* Gets number of times the key is repeated and the key value */
+    fread(&(index->record[i].reps), sizeof(int), 1, index->file);
+    fread(&(index->record[i].key), sizeof(int), 1, index->file);
+    /* Allocs as many positions as times repeated. */
+    index->record[i].position = (long *)calloc(index->record[i].reps, sizeof(long));
+    if (!(index->record[i].position)) {
+      index_close(index);
+      return NULL;
+    }
+    for (j = 0; j < index->record[i].reps; j++)
+      fread(&(index->record[i].position[j]), sizeof(long), 1, index->file);
+  }
+
+  return index;
+}
+
+/*
+   Saves the current state of index in the file it came from. See the
+   NOTE to index_open. (WE WON'T USE PATH, as file is stored in the structure)
+*/
+int index_save(index_t *index, char *path) {
+  int i, j;
+
+  if (!index || !path)
+    return 1;
+
+  for (i = 0; i < index->nrecords; i++) {
+    /* Write sample: 3 records with score 50 located in	1029, 2091 and 4922 */
+    fwrite(&(index->record[i].reps), sizeof(int), 1, index->file);
+    fwrite(&(index->record[i].key), sizeof(int), 1, index->file);
+    for (j = 0; j < index->record[i].reps; j++)
+      fwrite(&(index->record[i].position[j]), sizeof(long), 1, index->file);
+  }
 
   return 0;
 }
 
-
-/* 
+/*
    Puts a pair key-position in the index. NOTE: that the key may be
    present in the index or not... you must manage both situation. Also
    remember that the index must be kept ordered at all times.
 */
 int index_put(index_t *index, int key, long pos) {
-  if(!index || index->key<=key || index->position<=pos)
-    return 0;
+  int m, found, i;
 
-  strcpy(index->key,key);
-  strcpy(index->position,pos);
+  if (!index || key < 0 || key > 100)
+    return 1;
 
-  index->key=key;
-  index->position=pos;
+  found = bbin(&m, index, key);
+
+  /* si la clave que me pasan es igual a otra que haya ya en el index,
+   * incremento reps en la de irecord */
+  /* y guardo la direccion que me pasan desplazando todo -> mediante un
+   * realloc()*/
+  if (found == 1) {
+    (index->record[m].reps)++;
+    index->record[m].position = realloc(index->record[m].position, index->record[m].reps * sizeof(long));
+    index->record[m].position[index->record[m].reps] = pos;
+  }
+  /* si la clave no es igual a ninguna, puede ser mayor y menor que las otras.
+     tengo que incrementar
+        el numero de records en la estruc index y ponerle el reps de la estruc
+     irecord a 1 */
+  /* realloc a record para que sea de tamanio nrecords * sizeof(irecord) */
+  /* mover las menores (dcha) a la derecha 1 posicion */
+  else if (found == 0) {
+    (index->nrecords)++;
+    index->record = realloc(index->record, index->nrecords * sizeof(irecord));
+    for (i = m; i < index->nrecords; i++)
+      index->record[i] = index->record[i + 1];
+    index->record[m].reps = 1;
+    index->record[m].key = key;
+    index->record[m].position = (long *)calloc(1, sizeof(long));
+    index->record[m].position[0] = pos;
+  }
+  /* si bbin da error me salgo. bbin return -1 en error */
+  else {
+    printf("Error en la funcion bbin\n");
+    return 1;
+  }
 
   return 0;
 }
 
+/*
+   Retrieves all the positions associated with the key in the index.
 
-/* 
-   Retrieves all the positions associated with the key in the index. 
-   
    NOTE: the parameter nposs is not an array of integers: it is
    actually an integer variable that is passed by reference. In it you
    must store the number of elements in the array that you return,
@@ -158,47 +218,51 @@ int index_put(index_t *index, int key, long pos) {
 
    ANOTHER NOTE: remember that the search for the key MUST BE DONE
    using binary search.
-
 */
+
 long **index_get(index_t *index, int key, int* nposs) {
+  int found, m;
+  long **position = NULL;
 
-  if(!index || index->key<=key)
+  if (!index || key < 0 || key > 100 || !nposs)
     return NULL;
-  int n,found;
-  long **poss = index_get(index, key, &n);
 
+  position = (long **)calloc(1, sizeof(long *));
+  if (!position)
+    return NULL;
 
-  for (i=0; i < &(nposs); i++) {
-    /*
-    Do something with poss[i]
-    if()
-      index->key = poss[i];
-    */
-    if(index->key == key){
-      found = 1;
-      break;
-    }
-
+  /* miro si la clave que me pasan es igual a otra que haya ya en el index */
+  found = bbin(&m, index, key);
+  if (found != 1) {
+		/* In the array i return there are 0 elements :) */
+		*nposs = 0;
+    return NULL;
   }
 
-  if(found==1){
+  *position = index->record[m].position;
+  *nposs = index->record[m].reps;
 
-  }
-
-  return NULL;
+  return position;
 }
 
-/* 
-   Closes the index by freeing the allocated resources 
+/*
+   Closes the index by freeing the allocated resources
 */
 void index_close(index_t *index) {
-  if(!index)
-    return;
+  int i;
 
-  fclose(f_open);
-  fclose(f_create);
-  fclose(f_save);
-  free(index);
+  if (index) {
+    if (index->file)
+      fclose(index->file);
+    if (index->record) {
+      for (i = 0; i < index->nrecords; i++) {
+        if (index->record[i].position)
+          free(index->record[i].position);
+      }
+      free(index->record);
+    }
+    free(index);
+  }
+
+  return;
 }
-
-
