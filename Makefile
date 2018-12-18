@@ -1,7 +1,7 @@
 CC = gcc -ansi -pedantic
 CFLAGS = -Wall -std=c99 -Wextra
 LDLIBS = -lodbc
-EXE = test test_table table_test score suggest score_i
+EXE = test test_table table_test score suggest suggest_fin suggest_nueo
 
 all : $(EXE)
 

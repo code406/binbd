@@ -5,17 +5,17 @@
 
 typedef struct index_ index_t;
 
-/* 
+/*
    Creates a file for saving an empty index. The index is initialized
    to be of the specific tpe (in the basic version this is always INT)
    and to contain 0 entries.
  */
 int index_create(int type);
 
-/* 
+/*
    Opens a previously created index: reads the contents of the index
    in an index_t structure that it allocates, and returns a pointer to
-   it (or NULL if the files doesn't exist or there is an error). 
+   it (or NULL if the files doesn't exist or there is an error).
 
    NOTE: the index is stored in memory, so you can open and close the
    file in this function. However, when you are asked to save the
@@ -26,23 +26,23 @@ int index_create(int type);
  */
 index_t* index_open(char* path);
 
-/* 
+/*
    Saves the current state of index in the file it came from. See the
    NOTE to index_open.
 */
 int index_save(index_t* index, char* path);
 
 
-/* 
+/*
    Puts a pair key-position in the index. Note that the key may be
    present in the index or not... you must manage both situation. Also
    remember that the index must be kept ordered at all times.
 */
 int index_put(index_t *index, int key, long pos);
 
-/* 
-   Retrieves all the positions associated with the key in the index. 
-   
+/*
+   Retrieves all the positions associated with the key in the index.
+
    NOTE: the parameter nposs is not an array of integers: it is
    actually an integer variable that is passed by reference. In it you
    must store the number of elements in the array that you return,
@@ -62,9 +62,19 @@ int index_put(index_t *index, int key, long pos);
 */
 long **index_get(index_t *index, int key, int* nposs);
 
-/* 
-   Closes the index by freeing the allocated resources 
+/*
+   Closes the index by freeing the allocated resources
 */
 void index_close(index_t *index);
+
+/*
+	 Returns an array that contains all the keys in the index
+*/
+int *index_get_keys(index_t *index, int *nrecords);
+
+/*
+	 Prints the state of the index structure, for debug purposes
+*/
+void index_print(index_t *index);
 
 #endif

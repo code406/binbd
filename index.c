@@ -17,36 +17,34 @@ struct index_ {
 };
 
 /*
-int mycmp(const void *kptr, const void *e) {
-  irecord *rec = *((irecord **)e);
-  if (key < rec->key)
-    return -1;
-  else if (key > rec->key)
-    return 1;
-  else
-    return 0;
-}
+	 Binary search algorithm
+	 Returns 1 if it finds same key, 0 if not, -1 if error
 */
-
-/* Returns 1 if it finds same key, 0 if not, -1 if error */
 int bbin(int *m, index_t *index, int key){
-	int last, first=0;
+	int first = 0, last;
 
-  if(!m || !index)
-    return -1;
+	last = index->nrecords - 1;
+	*m = (first+last)/2;
 
-	last = index->nrecords;
-	while (first <= last){
-		*m = (first + last) / 2;
-		if((index->record[*m]).key == key){
-			return 1;
-		}
-		else if (key < (index->record[*m]).key)
-			last = *m + 1;
-		else
-			first = *m - 1;
+	while (first <= last) {
+		 if (index->record[*m].key > key)
+				first = *m + 1;
+		 else if (index->record[*m].key == key) {
+				printf("YES! %d found at location %d.\n", key, *m+1);
+				return 1;
+		 }
+		 else
+				last = *m - 1;
+
+		*m = (first + last)/2;
+		if ((first+last) < 0)
+			(*m)--;
 	}
+
+	if (first > last)
+		 printf("Not found! %d isn't in the list.\n", key);
 	return 0;
+
 }
 
 
@@ -59,7 +57,7 @@ int index_create(int type) {
   FILE *f = NULL;
 	int cero = 0;
 
-  f = fopen("index.dat", "a");
+  f = fopen("index.dat", "w");
   if (!f)
     return 1;
 
@@ -164,39 +162,55 @@ int index_put(index_t *index, int key, long pos) {
   if (!index || key < 0 || key > 100)
     return 1;
 
-  found = bbin(&m, index, key);
+	printf("HACIENDO PUT. MIRANDO SI HAY CON SCORE %d.    ", key);
 
-  /* si la clave que me pasan es igual a otra que haya ya en el index,
-   * incremento reps en la de irecord */
-  /* y guardo la direccion que me pasan desplazando todo -> mediante un
-   * realloc()*/
-  if (found == 1) {
-    (index->record[m].reps)++;
-    index->record[m].position = realloc(index->record[m].position, index->record[m].reps * sizeof(long));
-    index->record[m].position[index->record[m].reps] = pos;
-  }
-  /* si la clave no es igual a ninguna, puede ser mayor y menor que las otras.
-     tengo que incrementar
-        el numero de records en la estruc index y ponerle el reps de la estruc
-     irecord a 1 */
-  /* realloc a record para que sea de tamanio nrecords * sizeof(irecord) */
-  /* mover las menores (dcha) a la derecha 1 posicion */
-  else if (found == 0) {
-    (index->nrecords)++;
-    index->record = realloc(index->record, index->nrecords * sizeof(irecord));
-    for (i = m; i < index->nrecords; i++)
-      index->record[i] = index->record[i + 1];
-    index->record[m].reps = 1;
-    index->record[m].key = key;
-    index->record[m].position = (long *)calloc(1, sizeof(long));
-    index->record[m].position[0] = pos;
-  }
-  /* si bbin da error me salgo. bbin return -1 en error */
-  else {
-    printf("Error en la funcion bbin\n");
-    return 1;
-  }
+	/* si no hay registros en index inserta directamente */
+	if (index->nrecords == 0){
+		(index->nrecords)++;
+		index->record = calloc(1, sizeof(irecord));
+		index->record[0].reps = 1;
+		index->record[0].key = key;
+		index->record[0].position = (long *)calloc(1, sizeof(long));
+		index->record[0].position[0] = pos;
+	}
+	/* si hay algun registro en el index, compruebo si esta repetido */
+	else{
+		/* Busca para ver si la clave del elemento a insertar esta en el index */
+		/* 'm' sirve para saber donde debo insertar */
+		found = bbin(&m, index, key);
+	  /* si la clave que me pasan es igual a otra que haya ya en el index,
+	   * incremento reps en la de irecord */
+	  /* y guardo la direccion que me pasan desplazando todo -> mediante un
+	   * realloc()*/
+	  if (found == 1) {
+	    (index->record[m].reps)++;
+	    index->record[m].position = realloc(index->record[m].position, index->record[m].reps * sizeof(long));
+	    index->record[m].position[index->record[m].reps - 1] = pos;
+	  }
+	  /* si la clave no es igual a ninguna, puede ser mayor y menor que las otras.
+	     tengo que incrementar el numero de records en la estruc index y ponerle
+			 el reps de la estruc irecord a 1 */
+	  /* realloc a record para que sea de tamanio nrecords * sizeof(irecord) */
+	  /* mover las menores (dcha) a la derecha 1 posicion */
+		/* la posicion de insercion es m+1 */
+	  else if (found == 0) {
+	    (index->nrecords)++;
+	    index->record = realloc(index->record, index->nrecords * sizeof(irecord));
+	    for (i = index->nrecords-2; i >= m+1; i--)
+	      index->record[i+1] = index->record[i];
+	    index->record[m+1].reps = 1;
+	    index->record[m+1].key = key;
+	    index->record[m+1].position = (long *)calloc(1, sizeof(long));
+	    index->record[m+1].position[0] = pos;
+	  }
+	  /* si bbin da error me salgo. bbin return -1 en error */
+	  else {
+	    printf("Error en la funcion bbin\n");
+	    return 1;
+	  }
+	}
 
+	index_print(index);
   return 0;
 }
 
@@ -219,30 +233,26 @@ int index_put(index_t *index, int key, long pos) {
    ANOTHER NOTE: remember that the search for the key MUST BE DONE
    using binary search.
 */
-
 long **index_get(index_t *index, int key, int* nposs) {
   int found, m;
-  long **position = NULL;
 
   if (!index || key < 0 || key > 100 || !nposs)
     return NULL;
 
-  position = (long **)calloc(1, sizeof(long *));
-  if (!position)
-    return NULL;
-
-  /* miro si la clave que me pasan es igual a otra que haya ya en el index */
+	printf("HACIENDO GET. BUSCO PARA SCORE %d.    ", key);
+  /* Search the key in the index */
   found = bbin(&m, index, key);
-  if (found != 1) {
+
+	/* If there is no key like that in the index, stop */
+	if (found != 1) {
 		/* In the array i return there are 0 elements :) */
 		*nposs = 0;
     return NULL;
   }
 
-  *position = index->record[m].position;
-  *nposs = index->record[m].reps;
+	*nposs = index->record[m].reps;
 
-  return position;
+  return &index->record[m].position;
 }
 
 /*
@@ -265,4 +275,46 @@ void index_close(index_t *index) {
   }
 
   return;
+}
+
+/*
+	 Returns an array that contains all the keys in the index
+*/
+int *index_get_keys(index_t *index, int *nrecords){
+	int i=0;
+	int *array = NULL;
+
+	if (!index)
+		return NULL;
+
+	*nrecords = index->nrecords;
+
+	array = (int *) calloc(*nrecords, sizeof(int));
+	if (!array)
+		return NULL;
+
+	for (i=0; i < *nrecords; i++)
+		array[i] = index->record[i].key;
+
+	return array;
+}
+
+
+/*
+	 Prints the state of the index structure, for debug purposes
+*/
+void index_print(index_t *index) {
+	int i, j;
+
+	if (index) {
+		printf("\n=================================================\n\nINDEX STATE:\n");
+		if (index->record) {
+			printf("Nrecords: %d\n", index->nrecords);
+      for (i = 0; i < index->nrecords; i++) {
+				printf("Key #%d: %d. Reps: %d\n", i, index->record[i].key, index->record[i].reps);
+        for (j = 0; j<index->record[i].reps; j++)
+					printf("Position #%d: %ld\n", j, index->record[i].position[j]);
+  		}
+		}
+	}
 }

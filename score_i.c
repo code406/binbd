@@ -29,7 +29,7 @@ int main(int argc, char const *argv[]) {
 
   /* Less than four arguments on input */
   if (argc < 4) {
-    printf("Usa ./score <scrname> <score> \"<comment>\"\n");
+    printf("Usa ./score_i <scrname> <score> \"<comment>\"\n");
     return 1;
   }
 
@@ -52,16 +52,8 @@ int main(int argc, char const *argv[]) {
   SQLCloseCursor(stmt);
 
   /* Create and open table */
-  table_create("score.dat", 4, types);
-  table = table_open("score.dat");
-  if (!table) {
-    printf("Error opening table\n");
-    return 1;
-  }
-
-	/* Create and open index */
-  index_create(0);
-  index = index_open("index.dat");
+  table_create("score_i.dat", 4, types);
+  table = table_open("score_i.dat");
   if (!table) {
     printf("Error opening table\n");
     return 1;
@@ -70,12 +62,13 @@ int main(int argc, char const *argv[]) {
   rec = (void **)calloc(table_ncols(table), sizeof(void *));
   if (!rec) {
     table_close(table);
+		index_close(index);
     fprintf(stderr, "Error in record memory alloc");
     exit(EXIT_FAILURE);
   }
 
 	/* Guardamos en registro. Con calloc en los que son cadenas */
-  rec[0] = &id;
+	rec[0] = &id;
 	rec[1] = calloc(1, (strlen(argv[1])+1) * sizeof(char));
   strcpy(rec[1], argv[1]);
 	rec[2] = &score;
@@ -83,15 +76,16 @@ int main(int argc, char const *argv[]) {
 	strcpy(rec[3], argv[3]);
 	/* Guardo la posicion antes de insertar para pasarla al index */
 	pos = table_last_pos(table);
-  table_insert_record(table, rec);
+	printf("%ld, %i\n", pos, score);
+	table_insert_record(table, rec);
 	/* con el lastpos se la posicion que tengo que pasarle al index en puts. */
 	index_put(index, score, pos);
 	/* index_save */
-	index_save(index, "index.dat");
+	/*index_save(index, "index.dat");*/
 
   /*Free memory*/
   table_close(table);
-	index_close(index);
+	/*index_close(index);*/
 	free(rec[1]);
 	free(rec[3]);
 	free(rec);
