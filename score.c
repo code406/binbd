@@ -80,5 +80,11 @@ int main(int argc, char const *argv[]) {
 	free(rec[3]);
 	free(rec);
 
+  /* DISCONNECT */
+  ret = odbc_disconnect(env, dbc);
+  if (!SQL_SUCCEEDED(ret)) {
+    return EXIT_FAILURE;
+  }
+  /* DISCONNECT */
   return 0;
 }
