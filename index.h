@@ -76,12 +76,12 @@ void index_print(index_t *index);
 	Given the key, it looks for an index record and returns the index position
 	(1,2,3) related to it. *nposs = number of positions associated to the key.
 */
-int index_get_f1(index_t *index, int key, int* nposs)
+int index_get_f1(index_t *index, int key, int* nposs);
 
 /*
 	Given an index position (1,2,3) it retrieves all "table" positions associated
 	with the key in the index. *nposs = number of positions associated to the key.
 */
-long **index_get_f2(index_t *index, int index_number, int *nposs)
+long **index_get_f2(index_t *index, int index_number, int *nposs);
 
 #endif

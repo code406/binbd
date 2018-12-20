@@ -50,6 +50,7 @@ int main(int argc, char const *argv[]) {
 		score = (int *)table_column_get(table, 2);
 		if (!score){
 			printf("Cannot read score from record\n");
+			table_close(table);
 			return 1;
 		}
 		/* If score > score_input, we obtain the rest of the information */
@@ -58,6 +59,7 @@ int main(int argc, char const *argv[]) {
 			if(!name){
 				printf("Cannot read name from record\n");
 				free(score);
+				table_close(table);
 				return 1;
 			}
 			comment = (char *)table_column_get(table, 3);
@@ -65,6 +67,7 @@ int main(int argc, char const *argv[]) {
 				printf("Cannot read comment from record\n");
 				free(score);
 				free(name);
+				table_close(table);
 				return 1;
 			}
 			/************* Obtains tweets & number of tweets (query) ****************/

@@ -35,7 +35,7 @@ int main(int argc, char const *argv[]) {
 
   /* Less than two arguments on input */
   if (argc < 2) {
-    printf("Usa ./suggest_alt1 <score> \n");
+    printf("Usa ./suggest_alt <score> \n");
     return 1;
   }
 
@@ -51,6 +51,7 @@ int main(int argc, char const *argv[]) {
   index = index_open("index.dat");
   if (!index) {
     printf("Error opening index\n");
+		table_close(table);
     return 1;
   }
 
@@ -82,7 +83,7 @@ int main(int argc, char const *argv[]) {
 	}
 
 	/* Gets information of all records in the index that are before the limit */
-	for(i = 0; i < limit; i++){
+	for(i = 0; i <= limit; i++){
 		/* Gets positions from the index record with index position "i". */    /* Gets positions the index record with score "i". */
 		/* "n" is the number of positions that we obtain */
 		poss = index_get_f2(index, i, &n);
@@ -92,17 +93,25 @@ int main(int argc, char const *argv[]) {
 			score = (int *)table_column_get(table, 2);
 			if (!score){
 				printf("Cannot read score from record\n");
+				table_close(table);
+				index_close(index);
 				return 1;
 			}
 			name = (char *)table_column_get(table, 1);
 			if(!name){
 				printf("Cannot read name from record\n");
+				free(score);
+				table_close(table);
+				index_close(index);
 				return 1;
 			}
 			comment = (char *)table_column_get(table, 3);
 			if(!comment){
 				printf("Cannot read comment from record\n");
+				free(score);
 				free(name);
+				table_close(table);
+				index_close(index);
 				return 1;
 			}
 			/************* Obtains tweets & number of tweets (query) ****************/
