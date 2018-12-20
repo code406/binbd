@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* PARA AHORA: meter esos dos tipos. en types c y h incluimos llong y dbl. */
-
 typedef enum {
     INT, /*integer*/
     STR, /*string*/

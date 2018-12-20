@@ -166,8 +166,8 @@ long table_read_record(table_t *table, long pos) {
   if (!table)
     return -1L;
 
-  /* If this happens, we get out */
-  if (table->last_pos <= pos)
+  /* Checks if a record can start in the given position */
+  if (table->last_pos <= pos || table->first_pos > pos)
     return -1L;
 
   /* Place cursor in given pos */
@@ -176,7 +176,7 @@ long table_read_record(table_t *table, long pos) {
   for (i = 0; i < table->ncols; i++) {
     /* Gets size */
     fread(&size, sizeof(size_t), 1, table->file);
-
+		
     /* Allocs for column size. Default: calloc returns (void*) */
     table->field[i] = calloc(1, size);
     if (!table->field[i]) {

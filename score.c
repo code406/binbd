@@ -16,7 +16,7 @@ int main(int argc, char const *argv[]) {
   table_t *table = NULL;
   void **rec = NULL;
 	int score;
-  /* For this specific case */
+  /* Fills types of the columns for this table */
   type_t types[] = {LLNG, STR, INT, STR};
 
   /* CONNECT */
@@ -26,14 +26,14 @@ int main(int argc, char const *argv[]) {
 
   /* Less than four arguments on input */
   if (argc < 4) {
-    printf("Usa ./score <scrname> <score> \"<comment>\"\n");
+    printf("Use ./score <scrname> <score> \"<comment>\"\n");
     return 1;
   }
 
   /* Score not between 0 and 100 */
 	score = atoi(argv[2]);
   if (score < 0 || score > 100) {
-    printf("Introduce una puntuacion entre 0 y 100");
+    printf("Score must be between 0 and 100\n");
     return 1;
   }
 
@@ -43,7 +43,7 @@ int main(int argc, char const *argv[]) {
   SQLExecDirect(stmt, (SQLCHAR *)query, SQL_NTS);
   SQLBindCol(stmt, 1, SQL_C_SBIGINT, &id, sizeof(id), NULL);
   while (!SQL_SUCCEEDED(ret = SQLFetch(stmt))) {
-    printf("\n    El usuario '%s' no existe.\n", argv[1]);
+    printf("\n    User '%s' does not exist.\n", argv[1]);
     return 1;
   }
   SQLCloseCursor(stmt);
@@ -56,23 +56,25 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
+	/* Alloc memory for the record we want to insert */
   rec = (void **)calloc(table_ncols(table), sizeof(void *));
   if (!rec) {
     table_close(table);
-    fprintf(stderr, "Error in record memory alloc");
-    exit(EXIT_FAILURE);
+    return 1;
   }
 
-	/* Guardamos en registro. Con calloc en los que son cadenas */
+	/* Fill the record with the values we have obtained. */
   rec[0] = &id;
 	rec[1] = calloc(1, (strlen(argv[1])+1) * sizeof(char));
   strcpy(rec[1], argv[1]);
 	rec[2] = &score;
 	rec[3] = calloc(1, (strlen(argv[3])+1) * sizeof(char));
 	strcpy(rec[3], argv[3]);
+
+	/* Insert the record in the table */
   table_insert_record(table, rec);
 
-  /*Free memory*/
+  /* Free memory */
   table_close(table);
 	free(rec[1]);
 	free(rec[3]);
