@@ -47,6 +47,7 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
   SQLCloseCursor(stmt);
+  SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 
   /* Create and open table */
   table_create("score.dat", 4, types);
